@@ -1,0 +1,1428 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Anki">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f2f2f7">
+<title>My Anki</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Раскладка: iOS-список колод, экран повторения с нижней панелью ответов, как в AnkiMobile */
+:root{
+  --bg:#f2f2f7; --cell:#ffffff; --fg:#000000; --fg2:#6c6c70; --sep:rgba(60,60,67,.2);
+  --blue:#007aff; --red:#ff3b30; --green:#2fb344; --orange:#ff9500; --fill:rgba(120,120,128,.12);
+  --bar:rgba(249,249,249,.96); --cardbg:#ffffff;
+  --again:rgba(255,59,48,.14); --hard:rgba(255,149,0,.16); --good:rgba(47,179,68,.16); --easy:rgba(0,122,255,.14);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Roboto,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#000000; --cell:#1c1c1e; --fg:#ffffff; --fg2:#98989f; --sep:rgba(84,84,88,.55);
+  --blue:#0a84ff; --red:#ff453a; --green:#30d158; --orange:#ff9f0a; --fill:rgba(120,120,128,.24);
+  --bar:rgba(28,28,30,.96); --cardbg:#1c1c1e;
+  --again:rgba(255,69,58,.22); --hard:rgba(255,159,10,.22); --good:rgba(48,209,88,.22); --easy:rgba(10,132,255,.24);
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#000000; --cell:#1c1c1e; --fg:#ffffff; --fg2:#98989f; --sep:rgba(84,84,88,.55);
+  --blue:#0a84ff; --red:#ff453a; --green:#30d158; --orange:#ff9f0a; --fill:rgba(120,120,128,.24);
+  --bar:rgba(28,28,30,.96); --cardbg:#1c1c1e;
+  --again:rgba(255,69,58,.22); --hard:rgba(255,159,10,.22); --good:rgba(48,209,88,.22); --easy:rgba(10,132,255,.24);
+  color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:17px;line-height:1.3;-webkit-text-size-adjust:100%;touch-action:manipulation;overflow:hidden}
+button,input,label{font-family:inherit;touch-action:manipulation}
+button{cursor:pointer}
+#app{height:100%}
+.boot{height:100%;display:flex;align-items:center;justify-content:center;color:var(--fg2)}
+.gutter{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.screen{display:flex;flex-direction:column;height:100%;min-height:0}
+.nav,.st-top{flex:none;background:var(--bar);border-bottom:.5px solid var(--sep);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.nav-in,.st-in{display:flex;align-items:center;min-height:48px;gap:4px}
+.nav h1{flex:1;text-align:center;font-size:17px;font-weight:600;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.nav-btn{background:none;border:0;color:var(--blue);font-size:17px;min-width:48px;min-height:48px;padding:0 4px;display:flex;align-items:center;justify-content:center;white-space:nowrap}
+.nav-btn.icon{padding:0}
+.nb-sp{display:block;min-width:48px}
+.scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.pad{padding:14px max(16px,env(safe-area-inset-left,0px)) 28px max(16px,env(safe-area-inset-left,0px))}
+.tabbar{flex:none;background:var(--bar);border-top:.5px solid var(--sep);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.tabbar-in{display:flex}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 0 5px;font-size:10px;color:var(--fg2);background:none;border:0;min-height:50px}
+.tab.on{color:var(--blue)}
+/* колоды */
+.colhead{display:flex;align-items:center;font-size:12px;color:var(--fg2);padding:0 0 6px;padding-left:0;padding-right:0}
+.colhead span{text-align:right}
+.colhead .grow{flex:1}
+.cn,.cl,.cr{width:54px}
+.group{background:var(--cell);border-radius:12px;margin:0 0 22px;overflow:hidden}
+.row{display:flex;align-items:center;min-height:48px;padding:6px 16px;border-bottom:.5px solid var(--sep);gap:10px}
+.row:last-child{border-bottom:0}
+.row.col{flex-direction:column;align-items:stretch;padding:14px 16px;gap:10px}
+.rowtop{display:flex;align-items:center}
+.row small{display:block;font-size:12px;color:var(--fg2);margin-top:1px}
+.grow{flex:1;min-width:0}
+.deck{padding-left:8px;padding-right:0;cursor:pointer;min-height:52px}
+.deck:active{background:var(--fill)}
+.disc{width:30px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--fg2);font-size:15px;flex:none}
+.dname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cnt{width:54px;text-align:right;padding-right:14px;font-variant-numeric:tabular-nums;font-weight:500}
+.cnt.n{color:var(--blue)}.cnt.l{color:var(--red)}.cnt.r{color:var(--green)}
+.cnt.z{color:var(--fg2);opacity:.5;font-weight:400}
+.empty{padding:60px 8px;text-align:center;color:var(--fg2)}
+.empty h2{color:var(--fg);margin:12px 0 6px;font-size:22px}
+.empty p{margin:0 0 22px;line-height:1.4}
+.empty-ic{color:var(--fg2);opacity:.7}
+.empty-ic svg{width:56px;height:56px}
+.btn-main{display:block;width:100%;height:52px;border-radius:13px;border:0;background:var(--blue);color:#fff;font-size:17px;font-weight:600;margin:0 0 22px}
+.btn-main:disabled{background:var(--fill);color:var(--fg2)}
+.ov-counts{display:flex;justify-content:center;gap:30px;margin:18px 0 26px}
+.ov-counts div{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:13px;color:var(--fg2)}
+.ov-counts b{font-size:40px;font-weight:600;font-variant-numeric:tabular-nums;width:auto;padding:0;text-align:center}
+.muted{color:var(--fg2);line-height:1.4}
+.center{text-align:center}
+.num{width:88px;height:36px;border:0;border-radius:9px;background:var(--fill);color:var(--fg);font-size:17px;text-align:right;padding:0 10px}
+.num.wide{width:120px}
+.row-btn{display:block;width:100%;background:none;border:0;padding:14px 16px;font-size:17px;text-align:left;color:var(--blue)}
+.row-btn.danger,.sbtn.danger{color:var(--red)}
+.gh{font-size:13px;font-weight:400;color:var(--fg2);text-transform:uppercase;letter-spacing:.04em;margin:0 0 7px 16px}
+.foot{font-size:13px;color:var(--fg2);line-height:1.4;margin:-8px 16px 0}
+.switch{position:relative;width:51px;height:31px;flex:none}
+.switch input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0}
+.switch i{position:absolute;inset:0;border-radius:16px;background:var(--fill);transition:background .2s}
+.switch i::after{content:"";position:absolute;left:2px;top:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.3);transition:transform .2s}
+.switch input:checked + i{background:var(--green)}
+.switch input:checked + i::after{transform:translateX(20px)}
+input[type=range]{width:100%;accent-color:var(--blue)}
+.preview{text-align:center;padding:8px 0;color:var(--fg);line-height:1.3}
+.big{font-size:44px;font-weight:600;font-variant-numeric:tabular-nums}
+.forecast{display:flex;align-items:flex-end;gap:8px;height:120px;padding-top:6px}
+.fbar{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;text-align:center;font-size:11px;color:var(--fg2);gap:3px}
+.fbar i{display:block;background:var(--green);border-radius:4px 4px 0 0;min-height:2px}
+.fbar .fv{font-variant-numeric:tabular-nums}
+.stack{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--fill)}
+.stack i{display:block;height:100%}
+.lg{display:flex;align-items:center;gap:8px;font-size:15px}
+.lg span{flex:1}.lg b{font-variant-numeric:tabular-nums;font-weight:500}
+.lg i{width:12px;height:12px;border-radius:4px;flex:none}
+.s-nw{background:var(--blue)}.s-lr{background:var(--red)}.s-yg{background:#8bd17c}.s-mt{background:var(--green)}.s-sp{background:var(--fg2)}
+/* повторение */
+.study{background:var(--cardbg)}
+.st-in{justify-content:space-between}
+.st-r{display:flex}
+.counts{display:flex;gap:14px;font-size:18px;font-weight:600}
+.counts .cnt{width:auto;padding:0;font-weight:600;padding-bottom:1px;border-bottom:2px solid transparent}
+.counts .cnt.cur{border-bottom-color:currentColor}
+.cardwrap{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;position:relative}
+.cardhost{position:relative;min-height:100%}
+.cardframe{display:block;width:100%;border:0;background:transparent}
+.cardframe.pending{position:absolute;left:0;top:0;visibility:hidden}
+.done{padding:70px 24px;text-align:center;color:var(--fg)}
+.done h2{margin:10px 0 6px}
+.done p{color:var(--fg2);margin:0}
+.done-ic{width:64px;height:64px;line-height:64px;border-radius:50%;background:var(--good);color:var(--green);font-size:32px;margin:0 auto}
+.st-bot{flex:none;background:var(--bar);border-top:.5px solid var(--sep);padding-top:8px;padding-bottom:8px}
+.btn-show{display:block;width:100%;height:54px;border-radius:14px;border:0;background:var(--blue);color:#fff;font-size:18px;font-weight:600}
+.ans{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:58px;border-radius:14px;border:0;font-size:16px;font-weight:600;min-width:0;padding:0 2px}
+.ab small{font-size:12px;font-weight:500;opacity:.9}
+.ab1{background:var(--again);color:var(--red)}.ab2{background:var(--hard);color:var(--orange)}.ab3{background:var(--good);color:var(--green)}.ab4{background:var(--easy);color:var(--blue)}
+.ab:active{filter:brightness(.92)}
+/* шторка */
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;justify-content:center;z-index:50}
+.sheet{width:100%;max-width:520px;background:var(--cell);border-radius:18px 18px 0 0;padding:20px max(16px,env(safe-area-inset-left,0px)) calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;max-height:90%;overflow:auto}
+.sheet h2{margin:0;font-size:20px}
+.sheet p{margin:0}
+.sheet .row{padding-left:0;padding-right:0;border:0}
+.sbtn{display:flex;align-items:center;justify-content:center;height:50px;border-radius:13px;border:0;background:var(--fill);color:var(--blue);font-size:17px;font-weight:500;text-align:center}
+.sbtn.primary{background:var(--blue);color:#fff;font-weight:600}
+.sbtn:disabled{opacity:.4}
+.prog{height:8px;border-radius:4px;background:var(--fill);overflow:hidden}
+.prog i{display:block;height:100%;background:var(--blue);transition:width .2s}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:rgba(40,40,42,.94);color:#fff;padding:10px 16px;border-radius:12px;font-size:15px;z-index:80;max-width:86%;text-align:center}
+/* просмотр картинки */
+.lb{position:fixed;inset:0;background:#000;z-index:70;display:flex;flex-direction:column}
+.lb[hidden]{display:none}
+.lb-scroll{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch}
+.lb-scroll img{display:block}
+.lb-x{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));width:44px;height:44px;border-radius:22px;border:0;background:rgba(60,60,60,.85);color:#fff;font-size:20px;z-index:2}
+.lb-hint{position:absolute;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom,0px));text-align:center;color:#ddd;font-size:13px;pointer-events:none;text-shadow:0 1px 3px #000}
+.cloud{color:var(--blue)}.cloud.off{color:var(--fg2)}.cloud.error{color:var(--red)}.cloud.sync{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+.warn{color:var(--orange);font-size:14px;line-height:1.4}
+.syncbar{position:fixed;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));bottom:calc(72px + env(safe-area-inset-bottom,0px));background:var(--cell);border:.5px solid var(--sep);border-radius:12px;padding:10px 14px;display:flex;flex-direction:column;gap:8px;font-size:14px;z-index:60;box-shadow:0 4px 16px rgba(0,0,0,.18)}
+.syncbar[hidden]{display:none}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+<div id="app"></div>
+<div id="sheet"></div>
+<div id="lb" class="lb" hidden></div>
+<div id="syncbar" class="syncbar" hidden></div>
+<div id="toast" class="toast" hidden></div>
+<script>
+/* ===== CORE: ZIP, .apkg, шаблоны Anki, планировщик ===== */
+var Core = (function () {
+  'use strict';
+  var deps = { getSQL: null, inflateRaw: null, zstd: null };
+  function setDeps(d) { for (var k in d) deps[k] = d[k]; }
+
+  /* ---------- ZIP (с ZIP64), чтение кусками, без загрузки всего файла в память ---------- */
+  async function readSlice(file, a, b) { return new Uint8Array(await file.slice(a, b).arrayBuffer()); }
+  function u16(dv, o) { return dv.getUint16(o, true); }
+  function u32(dv, o) { return dv.getUint32(o, true); }
+  function u64(dv, o) { return dv.getUint32(o, true) + dv.getUint32(o + 4, true) * 4294967296; }
+  var utf8 = new TextDecoder('utf-8');
+
+  function ZipReader(file) { this.file = file; this.map = new Map(); }
+  ZipReader.prototype.open = async function () {
+    var size = this.file.size;
+    if (size < 22) throw new Error('The file is empty or not an .apkg archive');
+    var tailLen = Math.min(size, 65535 + 22 + 20);
+    var tail = await readSlice(this.file, size - tailLen, size);
+    var dv = new DataView(tail.buffer, tail.byteOffset, tail.byteLength);
+    var e = -1, i;
+    for (i = tail.length - 22; i >= 0; i--) { if (dv.getUint32(i, true) === 0x06054b50) { e = i; break; } }
+    if (e < 0) throw new Error('This is not a ZIP archive. Choose an .apkg file.');
+    var total = u16(dv, e + 10), cdSize = u32(dv, e + 12), cdOff = u32(dv, e + 16);
+    if (total === 0xFFFF || cdSize === 0xFFFFFFFF || cdOff === 0xFFFFFFFF) {
+      var loc = e - 20;
+      if (loc < 0 || dv.getUint32(loc, true) !== 0x07064b50) throw new Error('Could not read the ZIP64 archive');
+      var zoff = u64(dv, loc + 8);
+      var z = await readSlice(this.file, zoff, zoff + 56);
+      var zd = new DataView(z.buffer, z.byteOffset, z.byteLength);
+      if (zd.getUint32(0, true) !== 0x06064b50) throw new Error('The ZIP64 archive is damaged');
+      total = u64(zd, 32); cdSize = u64(zd, 40); cdOff = u64(zd, 48);
+    }
+    var cd = await readSlice(this.file, cdOff, cdOff + cdSize);
+    var cv = new DataView(cd.buffer, cd.byteOffset, cd.byteLength);
+    var p = 0;
+    while (p + 46 <= cd.length && cv.getUint32(p, true) === 0x02014b50) {
+      var method = u16(cv, p + 10), csize = u32(cv, p + 20), usize = u32(cv, p + 24);
+      var nl = u16(cv, p + 28), xl = u16(cv, p + 30), cl = u16(cv, p + 32), off = u32(cv, p + 42);
+      var name = utf8.decode(cd.subarray(p + 46, p + 46 + nl));
+      var xp = p + 46 + nl, xend = xp + xl;
+      while (xp + 4 <= xend) {
+        var id = u16(cv, xp), sz = u16(cv, xp + 2), q = xp + 4;
+        if (id === 1) {
+          if (usize === 0xFFFFFFFF) { usize = u64(cv, q); q += 8; }
+          if (csize === 0xFFFFFFFF) { csize = u64(cv, q); q += 8; }
+          if (off === 0xFFFFFFFF) { off = u64(cv, q); q += 8; }
+        }
+        xp += 4 + sz;
+      }
+      this.map.set(name, { method: method, csize: csize, usize: usize, off: off });
+      p += 46 + nl + xl + cl;
+    }
+  };
+  ZipReader.prototype.has = function (n) { return this.map.has(n); };
+  ZipReader.prototype.read = async function (name) {
+    var en = this.map.get(name);
+    if (!en) throw new Error('The archive has no file ' + name);
+    var h = await readSlice(this.file, en.off, en.off + 30);
+    var hv = new DataView(h.buffer, h.byteOffset, h.byteLength);
+    var start = en.off + 30 + u16(hv, 26) + u16(hv, 28);
+    var data = await readSlice(this.file, start, start + en.csize);
+    if (en.method === 0) return data;
+    if (en.method === 8) return await deps.inflateRaw(data);
+    throw new Error('Unsupported compression in the archive');
+  };
+
+  /* ---------- protobuf (минимум) ---------- */
+  function pbParse(buf) {
+    var i = 0, n = buf.length, out = [];
+    function varint() { var r = 0, s = 0, b; do { b = buf[i++]; r += (b & 0x7f) * Math.pow(2, s); s += 7; } while ((b & 0x80) && i < n); return r; }
+    while (i < n) {
+      var key = varint(), f = Math.floor(key / 8), w = key % 8;
+      if (w === 0) out.push({ f: f, v: varint() });
+      else if (w === 2) { var len = varint(); out.push({ f: f, v: buf.subarray(i, i + len) }); i += len; }
+      else if (w === 1) i += 8;
+      else if (w === 5) i += 4;
+      else break;
+    }
+    return out;
+  }
+  function pbStr(fields, f) { var x = fields.find(function (q) { return q.f === f && q.v instanceof Uint8Array; }); return x ? utf8.decode(x.v) : ''; }
+  function pbNum(fields, f, d) { var x = fields.find(function (q) { return q.f === f && typeof q.v === 'number'; }); return x ? x.v : d; }
+
+  function maybeZstd(b) {
+    if (b.length > 4 && b[0] === 0x28 && b[1] === 0xb5 && b[2] === 0x2f && b[3] === 0xfd) {
+      if (!deps.zstd) throw new Error('The zstd decompressor is not loaded');
+      return deps.zstd(b);
+    }
+    return b;
+  }
+
+  /* ---------- Разбор .apkg ---------- */
+  function iter(db, sql, map) {
+    var st = db.prepare(sql), done = false;
+    return {
+      next: function (n) {
+        var out = [];
+        while (!done && out.length < n) { if (st.step()) out.push(map(st.get())); else { done = true; st.free(); } }
+        return out;
+      },
+      free: function () { if (!done) { done = true; st.free(); } }
+    };
+  }
+  function allRows(db, sql) { var st = db.prepare(sql), out = []; while (st.step()) out.push(st.get()); st.free(); return out; }
+
+  async function openApkg(file) {
+    var zip = new ZipReader(file); await zip.open();
+    var colName = ['collection.anki21b', 'collection.anki21', 'collection.anki2'].find(function (n) { return zip.has(n); });
+    if (!colName) throw new Error('No Anki collection in the file. An .apkg or .colpkg export is needed.');
+    var raw = maybeZstd(await zip.read(colName));
+    var SQL = await deps.getSQL();
+    var db = new SQL.Database(raw);
+    raw = null;
+    var tables = allRows(db, "SELECT name FROM sqlite_master WHERE type='table'").map(function (r) { return r[0]; });
+    var isNew = tables.indexOf('notetypes') >= 0;
+    var models = [], decks = [], crt = 0;
+    var crow = allRows(db, 'SELECT crt FROM col');
+    if (crow.length) crt = crow[0][0];
+
+    if (!isNew) {
+      var col = allRows(db, 'SELECT models, decks FROM col')[0];
+      var mj = JSON.parse(col[0] || '{}'), dj = JSON.parse(col[1] || '{}');
+      Object.keys(mj).forEach(function (k) {
+        var m = mj[k];
+        models.push({
+          id: String(m.id || k), name: m.name || 'Type', kind: m.type === 1 ? 'cloze' : 'std', css: m.css || '',
+          fields: (m.flds || []).slice().sort(function (a, b) { return a.ord - b.ord; }).map(function (f) { return f.name; }),
+          tmpls: (m.tmpls || []).slice().sort(function (a, b) { return a.ord - b.ord; }).map(function (t) { return { name: t.name, qfmt: t.qfmt || '', afmt: t.afmt || '' }; })
+        });
+      });
+      Object.keys(dj).forEach(function (k) { var d = dj[k]; decks.push({ id: String(d.id || k), name: d.name || 'Default', dyn: !!d.dyn }); });
+    } else {
+      var byId = {};
+      allRows(db, 'SELECT id, name, config FROM notetypes NOT INDEXED').forEach(function (r) {
+        var cfg = r[2] ? pbParse(r[2]) : [];
+        var m = { id: String(r[0]), name: r[1], kind: pbNum(cfg, 1, 0) === 1 ? 'cloze' : 'std', css: pbStr(cfg, 3), fields: [], tmpls: [] };
+        byId[m.id] = m; models.push(m);
+      });
+      var fl = allRows(db, 'SELECT ntid, ord, name FROM fields NOT INDEXED').sort(function (a, b) { return a[1] - b[1]; });
+      fl.forEach(function (r) { var m = byId[String(r[0])]; if (m) m.fields.push(r[2]); });
+      var tl = allRows(db, 'SELECT ntid, ord, name, config FROM templates NOT INDEXED').sort(function (a, b) { return a[1] - b[1]; });
+      tl.forEach(function (r) {
+        var m = byId[String(r[0])]; if (!m) return;
+        var c = r[3] ? pbParse(r[3]) : [];
+        m.tmpls.push({ name: r[2], qfmt: pbStr(c, 1), afmt: pbStr(c, 2) });
+      });
+      allRows(db, 'SELECT id, name FROM decks NOT INDEXED').forEach(function (r) { decks.push({ id: String(r[0]), name: String(r[1]).replace(/\x1f/g, '::'), dyn: false }); });
+    }
+
+    // медиа
+    var media = [];
+    if (zip.has('media')) {
+      var mb = maybeZstd(await zip.read('media'));
+      var first = mb.length ? mb[0] : 0;
+      if (first === 0x7b /* { */ && colName !== 'collection.anki21b') {
+        var mj2 = JSON.parse(utf8.decode(mb));
+        Object.keys(mj2).forEach(function (k) { media.push({ zip: k, name: mj2[k] }); });
+      } else if (first === 0x7b) {
+        var mj3 = JSON.parse(utf8.decode(mb));
+        Object.keys(mj3).forEach(function (k) { media.push({ zip: k, name: mj3[k] }); });
+      } else {
+        var ents = pbParse(mb).filter(function (x) { return x.f === 1 && x.v instanceof Uint8Array; });
+        ents.forEach(function (x, idx) {
+          var f = pbParse(x.v), legacy = pbNum(f, 255, null);
+          media.push({ zip: String(legacy != null ? legacy : idx), name: pbStr(f, 1) });
+        });
+      }
+    }
+
+    var noteCount = allRows(db, 'SELECT count(*) FROM notes')[0][0];
+    var cardCount = allRows(db, 'SELECT count(*) FROM cards')[0][0];
+    return {
+      format: colName, models: models, decks: decks, crt: crt, media: media, noteCount: noteCount, cardCount: cardCount,
+      notes: function () { return iter(db, 'SELECT id, guid, mid, tags, flds FROM notes', function (r) { return { id: String(r[0]), guid: r[1], mid: String(r[2]), tags: r[3] || '', flds: r[4] || '' }; }); },
+      cards: function () { return iter(db, 'SELECT id, nid, did, odid, ord, type, queue, due, ivl, factor, reps, lapses FROM cards ORDER BY id', function (r) { return { id: String(r[0]), nid: String(r[1]), did: String(r[2]), odid: String(r[3] || 0), ord: r[4], type: r[5], queue: r[6], due: r[7], ivl: r[8], factor: r[9], reps: r[10], lapses: r[11] }; }); },
+      readMedia: async function (item) { if (!zip.has(item.zip)) return null; return maybeZstd(await zip.read(item.zip)); },
+      close: function () { try { db.close(); } catch (e) { } }
+    };
+  }
+
+  /* ---------- Шаблоны ---------- */
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function stripHtml(s) {
+    return String(s).replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+  }
+  var EMPTY_RE = /^(?:[\s​]|<\/?(?:br|div) ?\/?>)*$/i;
+  function isEmpty(s) { return EMPTY_RE.test(s || ''); }
+
+  function parseTemplate(src) {
+    var root = { children: [] }, stack = [root], i = 0;
+    while (i < src.length) {
+      var s = src.indexOf('{{', i);
+      if (s < 0) { stack[stack.length - 1].children.push({ t: 'text', v: src.slice(i) }); break; }
+      if (s > i) stack[stack.length - 1].children.push({ t: 'text', v: src.slice(i, s) });
+      var e = src.indexOf('}}', s + 2);
+      if (e < 0) { stack[stack.length - 1].children.push({ t: 'text', v: src.slice(s) }); break; }
+      var inner = src.slice(s + 2, e).trim();
+      var c = inner.charAt(0);
+      if (c === '#' || c === '^') {
+        var node = { t: 'sec', neg: c === '^', name: inner.slice(1).trim(), children: [] };
+        stack[stack.length - 1].children.push(node); stack.push(node);
+      } else if (c === '/') {
+        if (stack.length > 1) stack.pop();
+      } else if (c === '!') { /* comment */ }
+      else {
+        var parts = inner.split(':'), name = parts.pop().trim();
+        stack[stack.length - 1].children.push({ t: 'f', name: name, filters: parts.map(function (x) { return x.trim(); }) });
+      }
+      i = e + 2;
+    }
+    return root.children;
+  }
+
+  function clozeProcess(s, ord, isQ) {
+    var out = '', i = 0;
+    while (i < s.length) {
+      var re = /\{\{c(\d+)::/g; re.lastIndex = i;
+      var r = re.exec(s);
+      if (!r) { out += s.slice(i); break; }
+      out += s.slice(i, r.index);
+      var j = r.index + r[0].length, depth = 1;
+      while (j < s.length) {
+        if (s.startsWith('{{', j)) { depth++; j += 2; }
+        else if (s.startsWith('}}', j)) { depth--; if (depth === 0) break; j += 2; }
+        else j++;
+      }
+      if (depth !== 0) { out += s.slice(r.index); break; }
+      var inner = s.slice(r.index + r[0].length, j);
+      var k = 0, d = 0, split = -1;
+      for (; k < inner.length; k++) {
+        if (inner.startsWith('{{', k)) { d++; k++; }
+        else if (inner.startsWith('}}', k)) { d--; k++; }
+        else if (d === 0 && inner.startsWith('::', k)) { split = k; break; }
+      }
+      var text = split < 0 ? inner : inner.slice(0, split);
+      var hint = split < 0 ? '' : inner.slice(split + 2);
+      var n = parseInt(r[1], 10);
+      var tr = clozeProcess(text, ord, isQ);
+      if (n === ord) {
+        if (isQ) out += '<span class="cloze" data-cloze="' + esc(text) + '" data-ordinal="' + n + '">[' + (hint ? hint : '...') + ']</span>';
+        else out += '<span class="cloze" data-ordinal="' + n + '">' + tr + '</span>';
+      } else out += '<span class="cloze-inactive" data-ordinal="' + n + '">' + tr + '</span>';
+      i = j + 2;
+    }
+    return out;
+  }
+  function clozeAnswers(s, ord) {
+    var res = [], re = /\{\{c(\d+)::([\s\S]*?)(?:::[\s\S]*?)?\}\}/g, m;
+    while ((m = re.exec(s))) if (parseInt(m[1], 10) === ord) res.push(stripHtml(m[2]));
+    return res;
+  }
+
+  function applyFilter(f, val, name, ctx) {
+    switch (f) {
+      case 'text': return esc(stripHtml(val));
+      case 'cloze': return clozeProcess(val, ctx.clozeOrd, ctx.side === 'q');
+      case 'hint':
+        if (isEmpty(val)) return '';
+        var id = 'hint' + (ctx.hintN = (ctx.hintN || 0) + 1);
+        return '<a class="hint" href="#" onclick="this.style.display=\'none\';document.getElementById(\'' + id + '\').style.display=\'block\';return false;">Show: ' + esc(name) + '</a><div id="' + id + '" class="hint" style="display:none">' + val + '</div>';
+      case 'furigana': return val.replace(/ ?([^ >]+?)\[(.+?)\]/g, '<ruby><rb>$1</rb><rt>$2</rt></ruby>');
+      case 'kanji': return val.replace(/ ?([^ >]+?)\[(.+?)\]/g, '$1');
+      case 'kana': return val.replace(/ ?([^ >]+?)\[(.+?)\]/g, '$2');
+      case 'tts': return '';
+      case 'edit': return val;
+      default: return val;
+    }
+  }
+  function typeAnswer(expected, typed, side) {
+    if (side === 'q') return '<div class="typeans-wrap"><input type="text" id="typeans" class="typeans" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" style="width:100%;box-sizing:border-box;font-size:inherit;padding:8px"></div>';
+    var t = typed || '', ok = t.trim() === expected.trim();
+    if (ok) return '<code id="typeans" class="typeans"><span class="typeGood">' + esc(expected) + '</span></code>';
+    return '<code id="typeans" class="typeans"><span class="typeBad">' + esc(t || '—') + '</span><br><span class="typeGood">' + esc(expected) + '</span></code>';
+  }
+  function renderNodes(nodes, ctx) {
+    var out = '';
+    nodes.forEach(function (n) {
+      if (n.t === 'text') { out += n.v; return; }
+      if (n.t === 'sec') {
+        var v = n.name === 'FrontSide' ? ctx.frontSide : ctx.fields[n.name];
+        var has = v != null && !isEmpty(v);
+        if (n.neg ? !has : has) out += renderNodes(n.children, ctx);
+        return;
+      }
+      var name = n.name, val;
+      if (name === 'FrontSide') { out += ctx.frontSide || ''; return; }
+      if (name === 'Tags') val = ctx.tags; else if (name === 'Type') val = ctx.type;
+      else if (name === 'Deck') val = ctx.deck; else if (name === 'Subdeck') val = (ctx.deck || '').split('::').pop();
+      else if (name === 'Card') val = ctx.card; else if (name === 'CardFlag') val = '';
+      else if (Object.prototype.hasOwnProperty.call(ctx.fields, name)) val = ctx.fields[name];
+      else { out += ''; return; }
+      var filters = n.filters.slice().reverse();
+      if (filters.indexOf('type') >= 0) {
+        var exp = filters.indexOf('cloze') >= 0 ? clozeAnswers(val, ctx.clozeOrd).join(', ') : stripHtml(val);
+        out += typeAnswer(exp, ctx.typed, ctx.side); return;
+      }
+      filters.forEach(function (f) { val = applyFilter(f, val, name, ctx); });
+      out += val;
+    });
+    return out;
+  }
+  function renderTemplate(src, ctx) { return renderNodes(parseTemplate(src), ctx); }
+
+  var SOUND_RE = /\[sound:([^\]]+)\]/g;
+  function soundTags(html) { var r = [], m; SOUND_RE.lastIndex = 0; while ((m = SOUND_RE.exec(html))) r.push(m[1]); return r; }
+  function soundButtons(html) {
+    return html.replace(SOUND_RE, function (_, n) { return '<a href="#" class="replay-button" data-sound="' + esc(n) + '" aria-label="Audio">&#9654;&#xFE0E;</a>'; });
+  }
+
+  /* ---------- Планировщик (как в Anki 2.1) ---------- */
+  var DEFAULTS = {
+    newSteps: [1, 10], relearnSteps: [10], gradIvl: 1, easyIvl: 4, startEase: 2500, easyBonus: 1.3, hardIvl: 1.2,
+    ivlMod: 1.0, maxIvl: 36500, lapseMinIvl: 1, lapseNewIvl: 0, learnAhead: 20
+  };
+  function fuzzed(ivl) {
+    var lo, hi, f;
+    if (ivl < 2) return ivl;
+    if (ivl === 2) { lo = 2; hi = 3; }
+    else {
+      f = ivl < 7 ? Math.floor(ivl * 0.25) : ivl < 30 ? Math.max(2, Math.floor(ivl * 0.15)) : Math.max(4, Math.floor(ivl * 0.05));
+      f = Math.max(f, 1); lo = ivl - f; hi = ivl + f;
+    }
+    return lo + Math.floor(Math.random() * (hi - lo + 1));
+  }
+  function constrained(ivl, cfg, prev, fuzz) {
+    ivl = Math.floor(ivl * cfg.ivlMod);
+    if (fuzz) ivl = fuzzed(ivl);
+    ivl = Math.max(ivl, prev + 1, 1);
+    return Math.min(ivl, cfg.maxIvl);
+  }
+  function learnStep(c, rating, steps, relearn, cfg, now, today) {
+    if (!steps.length) steps = [1];
+    var idx = Math.min(Math.max(steps.length - c.left, 0), steps.length - 1);
+    function stay(mins) { c.due = now + Math.round(mins * 60000); return c; }
+    function grad(ivl) { c.state = 'review'; c.ivl = ivl; c.left = 0; c.due = today + ivl; return c; }
+    if (rating === 1) { c.left = steps.length; return stay(steps[0]); }
+    if (rating === 2) {
+      var d1 = steps[idx], d2 = idx + 1 < steps.length ? steps[idx + 1] : d1 * 2;
+      return stay((d1 + Math.max(d1, d2)) / 2);
+    }
+    if (rating === 3) {
+      if (idx + 1 < steps.length) { c.left = steps.length - (idx + 1); return stay(steps[idx + 1]); }
+      return grad(relearn ? Math.max(c.ivl, 1) : cfg.gradIvl);
+    }
+    return grad(relearn ? Math.max(c.ivl + 1, 1) : cfg.easyIvl);
+  }
+  function schedule(card, rating, cfg, now, today, fuzz) {
+    var c = Object.assign({}, card);
+    c.reps = (c.reps || 0) + 1;
+    if (c.state === 'new') {
+      c.state = 'learn'; c.ease = c.ease || cfg.startEase; c.left = (cfg.newSteps.length || 1);
+      var r = learnStep(c, rating, cfg.newSteps, false, cfg, now, today);
+      if (r.state === 'review') r.ease = cfg.startEase;
+      return r;
+    }
+    if (c.state === 'learn') return learnStep(c, rating, cfg.newSteps, false, cfg, now, today);
+    if (c.state === 'relearn') return learnStep(c, rating, cfg.relearnSteps, true, cfg, now, today);
+    // review
+    var late = Math.max(0, today - c.due);
+    if (rating === 1) {
+      c.lapses = (c.lapses || 0) + 1;
+      c.ease = Math.max(1300, c.ease - 200);
+      c.ivl = Math.max(cfg.lapseMinIvl, Math.floor(c.ivl * cfg.lapseNewIvl));
+      if (cfg.relearnSteps.length) { c.state = 'relearn'; c.left = cfg.relearnSteps.length; c.due = now + Math.round(cfg.relearnSteps[0] * 60000); }
+      else c.due = today + c.ivl;
+      return c;
+    }
+    var fct = c.ease / 1000;
+    var hardMin = cfg.hardIvl > 1 ? c.ivl : 0;
+    var i2 = constrained(c.ivl * cfg.hardIvl, cfg, hardMin, fuzz);
+    var ivl;
+    if (rating === 2) { ivl = i2; c.ease = Math.max(1300, c.ease - 150); }
+    else {
+      var i3 = constrained((c.ivl + Math.floor(late / 2)) * fct, cfg, i2, fuzz);
+      if (rating === 3) ivl = i3;
+      else { ivl = constrained((c.ivl + late) * fct * cfg.easyBonus, cfg, i3, fuzz); c.ease += 150; }
+    }
+    c.ivl = ivl; c.due = today + ivl;
+    return c;
+  }
+  function fmtInterval(ms) {
+    var s = ms / 1000;
+    if (s < 60) return '<1m';
+    var m = s / 60; if (m < 60) return Math.round(m) + 'm';
+    var h = m / 60; if (h < 24) return Math.round(h) + 'h';
+    var d = h / 24; if (d < 30) return Math.round(d) + 'd';
+    var mo = d / 30; if (mo < 12) return (Math.round(mo * 10) / 10).toString() + 'mo';
+    return (Math.round(d / 365 * 10) / 10).toString() + 'y';
+  }
+  function previewLabels(card, cfg, now, today) {
+    var out = [];
+    for (var r = 1; r <= 4; r++) {
+      var n = schedule(card, r, cfg, now, today, false);
+      out.push(fmtInterval(n.state === 'review' ? Math.max(1, n.ivl) * 86400000 : Math.max(0, n.due - now)));
+    }
+    return out;
+  }
+
+  return {
+    setDeps: setDeps, ZipReader: ZipReader, openApkg: openApkg, pbParse: pbParse,
+    renderTemplate: renderTemplate, clozeProcess: clozeProcess, isEmpty: isEmpty, esc: esc, stripHtml: stripHtml,
+    soundTags: soundTags, soundButtons: soundButtons, DEFAULTS: DEFAULTS, schedule: schedule, previewLabels: previewLabels, fmtInterval: fmtInterval
+  };
+})();
+if (typeof module !== 'undefined') module.exports = Core;
+</script>
+<script>
+/* ===== ПРИЛОЖЕНИЕ ===== */
+(function () {
+  'use strict';
+  var $ = function (s) { return document.querySelector(s); };
+  var E = Core.esc;
+  var CFG0 = Object.assign({}, Core.DEFAULTS, { newPerDay: 20, revPerDay: 200, bury: false, fontScale: 100, autoScroll: true, autoplay: true });
+  var S = {
+    decks: new Map(), models: new Map(), cards: [], byNid: new Map(), cfg: Object.assign({}, CFG0), daily: { day: 0, by: {} },
+    view: { name: 'decks' }, nextId: 1, q: null, cur: null, undo: [], noteCache: new Map(), mcache: new Map(), cssCache: new Map(),
+    frames: new Map(), tok: 0, wq: Promise.resolve(), logSeq: 0, storageOk: true, audio: null
+  };
+  var NAMES = ['Again', 'Hard', 'Good', 'Easy'];
+
+  /* ---------- время ---------- */
+  function off() { return -new Date().getTimezoneOffset() * 60000; }
+  function dayNum(ms) { return Math.floor((ms + off() - 4 * 3600000) / 86400000); }
+  function Today() { return dayNum(Date.now()); }
+  function dayCutoff() { return (Today() + 1) * 86400000 - off() + 4 * 3600000; }
+  function isDark() {
+    var t = document.documentElement.getAttribute('data-theme');
+    if (t) return t === 'dark';
+    return !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+  function tick() { return new Promise(function (r) { setTimeout(r, 0); }); }
+
+  /* ---------- IndexedDB ---------- */
+  var idb = null;
+  function openDB() {
+    return new Promise(function (res, rej) {
+      if (!window.indexedDB) return rej(new Error('IndexedDB is unavailable'));
+      var r = indexedDB.open('myanki', 1);
+      r.onupgradeneeded = function () {
+        var d = r.result;
+        d.createObjectStore('meta');
+        d.createObjectStore('decks', { keyPath: 'id' });
+        d.createObjectStore('models', { keyPath: 'id' });
+        d.createObjectStore('notes', { keyPath: 'id' }).createIndex('pkg', 'pkg');
+        d.createObjectStore('cards', { keyPath: 'id' }).createIndex('nid', 'nid');
+        d.createObjectStore('guids');
+        d.createObjectStore('media');
+        d.createObjectStore('log', { keyPath: 'id' });
+      };
+      r.onsuccess = function () { res(r.result); };
+      r.onerror = function () { rej(r.error); };
+      r.onblocked = function () { rej(new Error('blocked')); };
+    });
+  }
+  function rp(r) { return new Promise(function (res, rej) { r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); }; }); }
+  function dbGet(s, k) { return rp(idb.transaction(s).objectStore(s).get(k)); }
+  function dbAll(s, range) { return rp(idb.transaction(s).objectStore(s).getAll(range)); }
+  function dbKeys(s) { return rp(idb.transaction(s).objectStore(s).getAllKeys()); }
+  function dbPutMany(s, arr, keyed) {
+    return new Promise(function (res, rej) {
+      var t = idb.transaction(s, 'readwrite'), st = t.objectStore(s);
+      arr.forEach(function (it) { if (keyed) st.put(it[1], it[0]); else st.put(it); });
+      t.oncomplete = function () { res(); };
+      t.onerror = t.onabort = function () { rej(t.error || new Error('Write error')); };
+    });
+  }
+  function dbDelMany(s, keys) {
+    return new Promise(function (res, rej) {
+      var t = idb.transaction(s, 'readwrite'), st = t.objectStore(s);
+      keys.forEach(function (k) { st.delete(k); });
+      t.oncomplete = function () { res(); }; t.onerror = t.onabort = function () { rej(t.error); };
+    });
+  }
+  function dbDelRange(s, range) {
+    return new Promise(function (res, rej) {
+      var t = idb.transaction(s, 'readwrite'); t.objectStore(s).delete(range);
+      t.oncomplete = function () { res(); }; t.onerror = t.onabort = function () { rej(t.error); };
+    });
+  }
+  function dbClear(s) { return new Promise(function (res, rej) { var t = idb.transaction(s, 'readwrite'); t.objectStore(s).clear(); t.oncomplete = res; t.onerror = t.onabort = function () { rej(t.error); }; }); }
+  function setMeta(k, v) { return dbPutMany('meta', [[k, v]], true); }
+  function enqueue(fn) {
+    S.wq = S.wq.then(fn).catch(function (e) { console.error(e); if (S.storageOk) { S.storageOk = false; toast('Could not save progress (browser storage)'); } });
+  }
+  function persistCard(c) { enqueue(function () { return dbPutMany('cards', [c]); }); }
+  function persistDaily() { enqueue(function () { return setMeta('daily', S.daily); }); }
+
+  /* ---------- Загрузка библиотек по требованию ---------- */
+  var libP = {};
+  function loadScript(urls) {
+    return new Promise(function (res, rej) {
+      var i = 0;
+      (function next() {
+        if (i >= urls.length) return rej(new Error('Could not load a library. Check your internet connection.'));
+        var s = document.createElement('script'); s.src = urls[i++];
+        s.onload = function () { res(); }; s.onerror = function () { s.remove(); next(); };
+        document.head.appendChild(s);
+      })();
+    });
+  }
+  function ensureLibs() {
+    if (libP.all) return libP.all;
+    libP.all = (async function () {
+      await loadScript([
+        'https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-asm-memory-growth.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-asm-memory-growth.js',
+        'https://unpkg.com/sql.js@1.10.3/dist/sql-asm-memory-growth.js']);
+      var hasDS = typeof DecompressionStream !== 'undefined';
+      if (!hasDS) await loadScript(['https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js', 'https://unpkg.com/fflate@0.8.2/umd/index.js']);
+      try { await loadScript(['https://cdn.jsdelivr.net/npm/fzstd@0.1.1/umd/index.js', 'https://unpkg.com/fzstd@0.1.1/umd/index.js']); } catch (e) { /* только для нового формата */ }
+      var sqlP = null;
+      Core.setDeps({
+        getSQL: function () { if (!sqlP) sqlP = window.initSqlJs(); return sqlP; },
+        inflateRaw: async function (b) {
+          if (hasDS) {
+            var ds = new DecompressionStream('deflate-raw'), w = ds.writable.getWriter();
+            w.write(b); w.close();
+            return new Uint8Array(await new Response(ds.readable).arrayBuffer());
+          }
+          return window.fflate.inflateSync(b);
+        },
+        zstd: function (b) { if (!window.fzstd) throw new Error('Could not load the decompressor for the new format (zstd). Check your internet connection.'); return window.fzstd.decompress(b); }
+      });
+    })();
+    libP.all.catch(function () { libP.all = null; });
+    return libP.all;
+  }
+
+  /* ---------- Settings, счётчики дня ---------- */
+  function ensureDaily() {
+    var t = Today();
+    if (S.daily.day !== t) { S.daily = { day: t, by: {} }; persistDaily(); }
+  }
+  function ancestors(d) {
+    var out = [d], parts = d.name.split('::');
+    while (parts.length > 1) {
+      parts.pop();
+      var n = parts.join('::');
+      for (var x of S.decks.values()) { if (x.name === n) { out.push(x); break; } }
+    }
+    return out;
+  }
+  function bumpDaily(did, k) {
+    ensureDaily();
+    var d = S.decks.get(did); if (!d) return;
+    ancestors(d).forEach(function (a) { var o = S.daily.by[a.id] || (S.daily.by[a.id] = { n: 0, r: 0 }); o[k]++; });
+    persistDaily();
+  }
+
+  /* ---------- Дерево колод и счётчики ---------- */
+  function treeInfo() {
+    var byName = new Map(), kids = new Map(), roots = [];
+    S.decks.forEach(function (d) { byName.set(d.name, d); });
+    S.decks.forEach(function (d) {
+      var i = d.name.lastIndexOf('::'), p = i < 0 ? null : byName.get(d.name.slice(0, i));
+      if (p) { if (!kids.has(p.id)) kids.set(p.id, []); kids.get(p.id).push(d); } else roots.push(d);
+    });
+    var cmp = function (a, b) { return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }); };
+    roots.sort(cmp); kids.forEach(function (a) { a.sort(cmp); });
+    return { roots: roots, kids: kids };
+  }
+  function computeCounts() {
+    ensureDaily();
+    var today = Today(), cut = dayCutoff(), raw = new Map();
+    S.cards.forEach(function (c) {
+      if (c.sus || (c.bu && c.bu > today)) return;
+      var o = raw.get(c.did); if (!o) raw.set(c.did, o = { n: 0, l: 0, r: 0 });
+      if (c.state === 'new') o.n++;
+      else if (c.state === 'review') { if (c.due <= today) o.r++; }
+      else if (c.due < cut) o.l++;
+    });
+    var t = treeInfo(), out = new Map();
+    var rec = function (d) {
+      var r = raw.get(d.id) || { n: 0, l: 0, r: 0 }, n = r.n, l = r.l, rv = r.r;
+      (t.kids.get(d.id) || []).forEach(function (k) { var o = rec(k); n += o.n; l += o.l; rv += o.r; });
+      var done = S.daily.by[d.id] || { n: 0, r: 0 };
+      n = Math.min(n, Math.max(0, d.newPerDay - done.n)); rv = Math.min(rv, Math.max(0, d.revPerDay - done.r));
+      var o2 = { n: n, l: l, r: rv }; out.set(d.id, o2); return o2;
+    };
+    t.roots.forEach(rec);
+    return { counts: out, roots: t.roots, kids: t.kids };
+  }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
+  function buildQueue(did) {
+    ensureDaily();
+    var today = Today(), cut = dayCutoff(), t = treeInfo(), ids = new Set();
+    var walk = function (id) { ids.add(id); (t.kids.get(id) || []).forEach(function (k) { walk(k.id); }); };
+    walk(did);
+    var newBy = new Map(), revBy = new Map(), learn = [];
+    var push = function (m, k, c) { var a = m.get(k); if (!a) m.set(k, a = []); a.push(c); };
+    S.cards.forEach(function (c) {
+      if (!ids.has(c.did) || c.sus || (c.bu && c.bu > today)) return;
+      if (c.state === 'new') push(newBy, c.did, c);
+      else if (c.state === 'review') { if (c.due <= today) push(revBy, c.did, c); }
+      else if (c.due < cut) learn.push(c);
+    });
+    var rec = function (d) {
+      var n = (newBy.get(d.id) || []).slice(), r = (revBy.get(d.id) || []).slice();
+      (t.kids.get(d.id) || []).forEach(function (k) { var o = rec(k); n = n.concat(o.n); r = r.concat(o.r); });
+      n.sort(function (a, b) { return a.due - b.due || a.ord - b.ord || a.id - b.id; });
+      shuffle(r); r.sort(function (a, b) { return a.due - b.due; });
+      var done = S.daily.by[d.id] || { n: 0, r: 0 };
+      return { n: n.slice(0, Math.max(0, d.newPerDay - done.n)), r: r.slice(0, Math.max(0, d.revPerDay - done.r)) };
+    };
+    var o = rec(S.decks.get(did));
+    learn.sort(function (a, b) { return a.due - b.due; });
+    return { did: did, new: o.n, rev: o.r, learn: learn };
+  }
+  function pickNext(q) {
+    var now = Date.now();
+    if (q.learn.length && q.learn[0].due <= now) return q.learn[0];
+    if (q.rev.length) return q.rev[0];
+    if (q.new.length) return q.new[0];
+    if (q.learn.length && q.learn[0].due <= now + S.cfg.learnAhead * 60000) return q.learn[0];
+    return null;
+  }
+  function dropFromQueue(q, id) {
+    ['new', 'rev', 'learn'].forEach(function (k) { var i = q[k].findIndex(function (c) { return c.id === id; }); if (i >= 0) q[k].splice(i, 1); });
+  }
+
+  /* ---------- Медиа и рендер карточки ---------- */
+  var MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml', bmp: 'image/bmp', avif: 'image/avif', mp3: 'audio/mpeg', ogg: 'audio/ogg', wav: 'audio/wav', m4a: 'audio/mp4', aac: 'audio/aac', flac: 'audio/flac', mp4: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime', ttf: 'font/ttf', otf: 'font/otf', woff: 'font/woff', woff2: 'font/woff2' };
+  function mimeOf(n) { var m = /\.([a-z0-9]+)$/i.exec(n); return (m && MIME[m[1].toLowerCase()]) || 'application/octet-stream'; }
+  function toDataURL(bytes, mime) {
+    return new Promise(function (res) { var fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.onerror = function () { res(null); }; fr.readAsDataURL(new Blob([bytes], { type: mime })); });
+  }
+  function unent(s) { return s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>'); }
+  async function getMediaRec(pkg, raw) {
+    var cands = [raw];
+    var u = unent(raw); if (u !== raw) cands.push(u);
+    try { var d = decodeURIComponent(u); if (d !== u) cands.push(d); } catch (e) { }
+    for (var i = 0; i < cands.length; i++) {
+      var r = await dbGet('media', pkg + '/' + cands[i]);
+      if (r) return { rec: r, name: cands[i] };
+    }
+    return null;
+  }
+  async function mediaUrl(pkg, raw) {
+    if (/^(https?:|data:|blob:|\/\/|#)/i.test(raw)) return null;
+    var key = pkg + '/' + raw, hit = S.mcache.get(key);
+    if (hit) return hit;
+    var f = await getMediaRec(pkg, raw); if (!f) return null;
+    var url = await toDataURL(f.rec.d, mimeOf(f.name));
+    if (url) { S.mcache.set(key, url); if (S.mcache.size > 40) S.mcache.delete(S.mcache.keys().next().value); }
+    return url;
+  }
+  var MEDIA_RE = /(<(?:img|audio|video|source)\b[^>]*?\bsrc\s*=\s*)(["'])(.*?)\2/gi;
+  async function inlineMedia(html, pkg) {
+    var names = new Set(), map = new Map();
+    html.replace(MEDIA_RE, function (m, a, q, n) { names.add(n); return m; });
+    for (var n of names) { var u = await mediaUrl(pkg, n); if (u) map.set(n, u); }
+    return html.replace(MEDIA_RE, function (m, a, q, n) { return map.has(n) ? a + q + map.get(n) + q : m; });
+  }
+  async function processCss(model, pkg) {
+    var key = model.id + '|' + pkg; if (S.cssCache.has(key)) return S.cssCache.get(key);
+    var css = model.css || '', re = /url\(\s*(["']?)([^"')]+)\1\s*\)/g, names = new Set(), map = new Map(), m;
+    while ((m = re.exec(css))) names.add(m[2]);
+    for (var n of names) { var f = await getMediaRec(pkg, n); if (f) { var u = await toDataURL(f.rec.d, mimeOf(f.name)); if (u) map.set(n, u); } }
+    css = css.replace(re, function (all, q, n) { return map.has(n) ? 'url("' + map.get(n) + '")' : all; });
+    S.cssCache.set(key, css); if (S.cssCache.size > 8) S.cssCache.delete(S.cssCache.keys().next().value);
+    return css;
+  }
+  async function getNote(id) {
+    var n = S.noteCache.get(id);
+    if (!n) { n = await dbGet('notes', id); if (n) { S.noteCache.set(id, n); if (S.noteCache.size > 30) S.noteCache.delete(S.noteCache.keys().next().value); } }
+    return n;
+  }
+  function makeDoc(css, body, ord, side, fid) {
+    var dark = isDark(), sc = S.cfg.fontScale / 100;
+    var base = 'html{-webkit-text-size-adjust:100%;height:auto}body{margin:0;padding:12px 12px 24px;background:' + (dark ? '#1c1c1e' : '#fff') + ';color:' + (dark ? '#f2f2f7' : '#000') +
+      ';font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:20px;line-height:1.35;text-align:left;overflow-wrap:break-word;word-wrap:break-word}' +
+      'img{max-width:100%;height:auto}audio,video{max-width:100%}a{color:' + (dark ? '#64a8ff' : '#0a60d6') + '}' +
+      '.replay-button{display:inline-block;width:30px;height:30px;line-height:30px;border-radius:15px;text-align:center;text-decoration:none;background:rgba(120,120,128,.22);color:inherit;font-size:13px;margin:0 3px;vertical-align:middle}' +
+      '.typeGood{background:#a6e7a6;color:#000}.typeBad{background:#f5a5a5;color:#000}code#typeans{font-size:inherit}';
+    var mob = 'img{max-width:100%!important;max-height:none!important;height:auto;margin:.5em auto!important}.card{padding-left:0!important;padding-right:0!important}table{max-width:100%}pre{white-space:pre-wrap}';
+    var after = sc !== 1 ? 'body{zoom:' + sc + '}' : '';
+    var cls = 'card card' + ord + ' mobile ios iphone' + (dark ? ' nightMode night_mode' : '');
+    var js = '(function(){var ID=' + JSON.stringify(fid) + ',sent=0;function p(m){m.id=ID;parent.postMessage(m,"*")}' +
+      'function h(){var r=document.documentElement.getBoundingClientRect();p({t:"h",h:Math.ceil(r.height)});' +
+      (side === 'a' ? 'if(!sent){var a=document.getElementById("answer");if(a){sent=1;p({t:"ans",y:Math.round(a.getBoundingClientRect().top+(window.pageYOffset||0))})}}' : '') + '}' +
+      'function fi(im){var nw=im.naturalWidth;if(!nw||nw<140)return;im.style.setProperty("width","100%","important");im.style.setProperty("max-width","100%","important");im.style.setProperty("height","auto","important")}' +
+      'function fix(){var CAP=19,all=document.body.getElementsByTagName("*"),i,e;for(i=0;i<all.length;i++){e=all[i];if(e.tagName==="SCRIPT"||e.tagName==="STYLE")continue;if(e.tagName==="IMG"){fi(e);continue}var fs=parseFloat(getComputedStyle(e).fontSize);if(fs>CAP)e.style.setProperty("font-size",CAP+"px","important")}var b=parseFloat(getComputedStyle(document.body).fontSize);if(b>CAP)document.body.style.setProperty("font-size",CAP+"px","important")}' +
+      'var raf=0;function rep(){cancelAnimationFrame(raf);raf=requestAnimationFrame(h)}' +
+      'window.addEventListener("load",function(){fix();rep();setTimeout(function(){fix();rep()},250);setTimeout(function(){fix();rep()},900)});' +
+      'if(window.ResizeObserver)new ResizeObserver(rep).observe(document.body);' +
+      'document.addEventListener("load",function(e){if(e.target&&e.target.tagName==="IMG")fi(e.target);rep()},true);' +
+      'document.addEventListener("click",function(e){var t=e.target,a=t.closest&&t.closest("[data-sound]");if(a){e.preventDefault();p({t:"play",n:a.getAttribute("data-sound")});return}' +
+      'var im=t.closest&&t.closest("img");if(im&&!t.closest("a")){p({t:"img",src:im.currentSrc||im.src})}});' +
+      'document.addEventListener("input",function(e){if(e.target&&e.target.id==="typeans")p({t:"typed",v:e.target.value})});' +
+      'window.pycmd=function(){};window.anki=window.anki||{};try{fix()}catch(e){}rep()})();';
+    return '<!doctype html><html class="' + (dark ? 'night_mode' : '') + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>' + base + '</style><style>' + css + '</style><style>' + mob + '</style><style>' + after + '</style></head><body class="' + cls + '">' +
+      body + '<script>' + js + '<\/script></body></html>';
+  }
+  async function buildCard(card, side, typed) {
+    var note = await getNote(card.nid);
+    if (!note) throw new Error('Note not found');
+    var model = S.models.get(note.mid);
+    if (!model) throw new Error('Note type not found');
+    var tm = model.kind === 'cloze' ? model.tmpls[0] : (model.tmpls[card.ord] || model.tmpls[0]);
+    var fields = {}; model.fields.forEach(function (f, i) { fields[f] = note.flds[i] || ''; });
+    var deck = S.decks.get(card.did);
+    var ctx = { fields: fields, tags: note.tags.join(' '), type: model.name, deck: deck ? deck.name : '', card: tm.name, clozeOrd: card.ord + 1, side: 'q', typed: typed };
+    var q = Core.renderTemplate(tm.qfmt, ctx), body = q;
+    if (side === 'a') body = Core.renderTemplate(tm.afmt, Object.assign({}, ctx, { side: 'a', frontSide: q }));
+    var sounds = Core.soundTags(body);
+    if (side === 'a') { var qs = Core.soundTags(q); sounds = sounds.filter(function (s) { return qs.indexOf(s) < 0; }); }
+    body = Core.soundButtons(body);
+    body = await inlineMedia(body, note.pkg);
+    var css = await processCss(model, note.pkg);
+    return { pkg: note.pkg, sounds: sounds, make: function (fid) { return makeDoc(css, body, card.ord + 1, side, fid); }, marked: note.tags.indexOf('marked') >= 0 };
+  }
+
+  /* ---------- Звук ---------- */
+  async function playSound(pkg, name) {
+    try {
+      var f = await getMediaRec(pkg, name); if (!f) return;
+      if (S.audio) { try { S.audio.pause(); } catch (e) { } }
+      var url = URL.createObjectURL(new Blob([f.rec.d], { type: mimeOf(f.name) }));
+      var a = new Audio(url); S.audio = a;
+      a.onended = function () { URL.revokeObjectURL(url); };
+      await a.play();
+    } catch (e) { /* автозапуск мог быть запрещён браузером */ }
+  }
+
+  /* ---------- Вспомогательное UI ---------- */
+  var toastT = 0;
+  function toast(msg) {
+    var t = $('#toast'); t.textContent = msg; t.hidden = false;
+    clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 2600);
+  }
+  function icon(n) {
+    var I = {
+      decks: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="4" y="9" width="16" height="11" rx="2.5"/><path d="M7 6h10M9 3h6"/></svg>',
+      stats: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 20V12M12 20V5M18 20v-5"/></svg>',
+      set: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>',
+      undo: '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7L4 12l5 5"/><path d="M4 12h10a6 6 0 0 1 0 8h-3"/></svg>',
+      more: '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>',
+      plus: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+      star: '<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>'
+    };
+    return I[n] || '';
+  }
+  function tabbar(active) {
+    var T = [['decks', 'Decks', 'decks'], ['stats', 'Statistics', 'stats'], ['settings', 'Settings', 'set']];
+    return '<nav class="tabbar"><div class="tabbar-in gutter">' + T.map(function (t) {
+      return '<button class="tab' + (active === t[0] ? ' on' : '') + '" data-act="tab" data-v="' + t[0] + '">' + icon(t[2]) + '<span>' + t[1] + '</span></button>';
+    }).join('') + '</div></nav>';
+  }
+  function setApp(html) { $('#app').innerHTML = html; }
+  function openSheet(html) {
+    $('#sheet').innerHTML = '<div class="sheet-bg"><div class="sheet">' + html + '</div></div>';
+  }
+  function closeSheet() { $('#sheet').innerHTML = ''; }
+  function confirmSheet(title, msg, okLabel, fn) {
+    S.confirmFn = fn;
+    openSheet('<h2>' + E(title) + '</h2><p class="muted">' + E(msg) + '</p><button class="sbtn danger" data-act="confirmOk">' + E(okLabel) + '</button><button class="sbtn" data-act="closeSheet">Cancel</button>');
+  }
+
+  /* ---------- Экраны ---------- */
+  function renderDecks() {
+    S.view = { name: 'decks' };
+    var info = computeCounts(), rows = [];
+    var walk = function (d, depth) {
+      var k = info.kids.get(d.id) || [];
+      rows.push({ d: d, depth: depth, hasKids: k.length > 0, c: info.counts.get(d.id) });
+      if (k.length && !d.collapsed) k.forEach(function (x) { walk(x, depth + 1); });
+    };
+    info.roots.forEach(function (r) { walk(r, 0); });
+    var list;
+    if (!rows.length) {
+      list = '<div class="empty"><div class="empty-ic">' + icon('decks') + '</div><h2>No decks yet</h2><p>Tap “+” and choose an .apkg file from your downloads or iCloud.</p><button class="btn-main" data-act="import">Import deck</button></div>';
+    } else {
+      list = '<div class="colhead gutter"><span class="grow"></span><span class="cn">New</span><span class="cl">Learn</span><span class="cr">Due</span></div><div class="group inset">' +
+        rows.map(function (r) {
+          var c = r.c || { n: 0, l: 0, r: 0 }, nm = r.depth > 0 ? r.d.name.split('::').pop() : r.d.name;
+          return '<div class="row deck" data-act="openDeck" data-id="' + r.d.id + '" style="padding-left:' + (8 + r.depth * 18) + 'px">' +
+            '<span class="disc" ' + (r.hasKids ? 'data-act="toggle" data-id="' + r.d.id + '"' : '') + '>' + (r.hasKids ? (r.d.collapsed ? '▸' : '▾') : '') + '</span>' +
+            '<span class="dname">' + E(nm) + '</span>' +
+            '<span class="cnt n' + (c.n ? '' : ' z') + '">' + c.n + '</span><span class="cnt l' + (c.l ? '' : ' z') + '">' + c.l + '</span><span class="cnt r' + (c.r ? '' : ' z') + '">' + c.r + '</span></div>';
+        }).join('') + '</div>';
+    }
+    setApp('<div class="screen"><header class="nav"><div class="nav-in gutter"><span class="nb-sp"></span><h1>Decks</h1><button class="nav-btn icon" data-act="import" aria-label="Import">' + icon('plus') + '</button></div></header><main class="scroll"><div class="pad">' + list + '</div></main>' + tabbar('decks') + '</div>');
+  }
+  function renderOverview(did) {
+    var d = S.decks.get(did); if (!d) return renderDecks();
+    S.view = { name: 'overview', did: did };
+    var c = computeCounts().counts.get(did) || { n: 0, l: 0, r: 0 }, total = c.n + c.l + c.r;
+    setApp('<div class="screen"><header class="nav"><div class="nav-in gutter"><button class="nav-btn" data-act="back">‹ Decks</button><h1>' + E(d.name.split('::').pop()) + '</h1><span class="nb-sp"></span></div></header><main class="scroll"><div class="pad">' +
+      '<div class="ov-counts"><div><b class="cnt n' + (c.n ? '' : ' z') + '">' + c.n + '</b><span>New</span></div><div><b class="cnt l' + (c.l ? '' : ' z') + '">' + c.l + '</b><span>Study</span></div><div><b class="cnt r' + (c.r ? '' : ' z') + '">' + c.r + '</b><span>Due</span></div></div>' +
+      (total ? '<button class="btn-main" data-act="study">Study Now</button>' : '<p class="muted center">That’s all for today in this deck. Come back tomorrow.</p><button class="btn-main" disabled>Study Now</button>') +
+      '<div class="group"><label class="row"><span class="grow">New cards per day</span><input class="num" type="number" inputmode="numeric" min="0" data-deckopt="newPerDay" data-id="' + did + '" value="' + d.newPerDay + '"></label>' +
+      '<label class="row"><span class="grow">Reviews per day</span><input class="num" type="number" inputmode="numeric" min="0" data-deckopt="revPerDay" data-id="' + did + '" value="' + d.revPerDay + '"></label></div>' +
+      '<div class="group"><button class="row-btn danger" data-act="delDeck" data-id="' + did + '">Delete deck</button></div>' +
+      '</div></main></div>');
+  }
+  function renderSettings() {
+    S.view = { name: 'settings' };
+    var c = S.cfg;
+    var sw = function (k, label) { return '<label class="row"><span class="grow">' + label + '</span><span class="switch"><input type="checkbox" data-cfg="' + k + '"' + (c[k] ? ' checked' : '') + '><i></i></span></label>'; };
+    var num = function (k, label, hint) { return '<label class="row"><span class="grow">' + label + (hint ? '<small>' + hint + '</small>' : '') + '</span><input class="num" type="number" inputmode="decimal" data-cfg="' + k + '" value="' + c[k] + '"></label>'; };
+    var txt = function (k, label, hint) { return '<label class="row"><span class="grow">' + label + (hint ? '<small>' + hint + '</small>' : '') + '</span><input class="num wide" type="text" inputmode="decimal" data-cfgsteps="' + k + '" value="' + c[k].join(' ') + '"></label>'; };
+    setApp('<div class="screen"><header class="nav"><div class="nav-in gutter"><span class="nb-sp"></span><h1>Settings</h1><span class="nb-sp"></span></div></header><main class="scroll"><div class="pad">' +
+      '<h3 class="gh">Card</h3><div class="group"><div class="row col"><div class="rowtop"><span class="grow">Text size</span><b id="fsval">' + c.fontScale + '%</b></div><input type="range" min="60" max="180" step="5" value="' + c.fontScale + '" data-cfg="fontScale" id="fs"><div class="preview" id="fsprev" style="font-size:' + (20 * c.fontScale / 100) + 'px">Sample card text</div></div>' +
+      sw('autoScroll', 'Scroll to answer') + sw('autoplay', 'Autoplay audio') + '</div>' +
+      '<h3 class="gh">Scheduler</h3><div class="group">' + num('newPerDay', 'New per day', 'for new decks') + num('revPerDay', 'Reviews per day', 'for new decks') +
+      txt('newSteps', 'Learning steps, min', 'space-separated') + txt('relearnSteps', 'Relearning steps, min', 'space-separated') +
+      num('gradIvl', 'Graduating interval, days') + num('easyIvl', 'Easy interval, days') + sw('bury', 'Bury sibling cards') + '</div>' +
+      '<h3 class="gh">Data</h3><div class="group"><div class="row"><span class="grow">Decks: ' + S.decks.size + ', cards: ' + S.cards.length + '</span></div><div class="row"><span class="grow" id="memstat" style="font-size:13px;color:var(--sub,#8e8e93)">Checking storage…</span></div><button class="row-btn danger" data-act="wipe">Delete all data</button></div>' +
+      '<p class="foot">All decks and progress are stored only in this browser’s storage on this device. Keep your original .apkg files: you can always import them again.</p>' +
+      '</div></main>' + tabbar('settings') + '</div>');
+    memStat();
+  }
+  async function memStat() {
+    var el = $('#memstat'); if (!el) return;
+    var t = 'Launches with this storage: ' + (S.boots || '?');
+    try {
+      var per = navigator.storage && navigator.storage.persisted ? await navigator.storage.persisted() : null;
+      var est = navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null;
+      if (est) t += '\nUsed: ' + Math.round((est.usage || 0) / 1048576) + ' MB of ' + Math.round((est.quota || 0) / 1048576) + ' MB';
+      if (per !== null) t += '\nPersistent storage: ' + (per ? 'yes' : 'no — the system may erase data');
+    } catch (e) { }
+    el = $('#memstat'); if (el) { el.style.whiteSpace = 'pre-wrap'; el.textContent = t; }
+  }
+  async function renderStats() {
+    S.view = { name: 'stats' };
+    setApp('<div class="screen"><header class="nav"><div class="nav-in gutter"><span class="nb-sp"></span><h1>Statistics</h1><span class="nb-sp"></span></div></header><main class="scroll"><div class="pad"><p class="muted center">Counting…</p></div></main>' + tabbar('stats') + '</div>');
+    var start = (Today()) * 86400000 - off() + 4 * 3600000, log = [];
+    try { log = await dbAll('log', IDBKeyRange.lowerBound(start * 1000)); } catch (e) { }
+    if (S.view.name !== 'stats') return;
+    var n = log.length, ms = log.reduce(function (a, l) { return a + (l.t || 0); }, 0), ok = log.filter(function (l) { return l.r > 1; }).length;
+    var today = Today(), fc = [0, 0, 0, 0, 0, 0, 0], cnt = { nw: 0, lr: 0, yg: 0, mt: 0, sp: 0 };
+    S.cards.forEach(function (c) {
+      if (c.sus) { cnt.sp++; return; }
+      if (c.state === 'new') cnt.nw++; else if (c.state === 'review') { if (c.ivl >= 21) cnt.mt++; else cnt.yg++; var k = Math.max(0, c.due - today); if (k < 7) fc[k]++; } else cnt.lr++;
+    });
+    var mx = Math.max.apply(null, fc.concat([1])), tot = Math.max(1, S.cards.length);
+    var DN = ['Today', 'Tomorrow'], wd = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    var bars = fc.map(function (v, i) {
+      var dt = new Date(Date.now() + i * 86400000);
+      return '<div class="fbar"><span class="fv">' + v + '</span><i style="height:' + Math.round(v / mx * 100) + '%"></i><span class="fl">' + (i === 0 ? 'today' : wd[dt.getDay()]) + '</span></div>';
+    }).join('');
+    var seg = function (v, cls, name) { return '<div class="lg"><i class="' + cls + '"></i><span>' + name + '</span><b>' + v + '</b></div>'; };
+    var bar = ['nw', 'lr', 'yg', 'mt', 'sp'].map(function (k) { return '<i class="s-' + k + '" style="width:' + (cnt[k] / tot * 100) + '%"></i>'; }).join('');
+    setApp('<div class="screen"><header class="nav"><div class="nav-in gutter"><span class="nb-sp"></span><h1>Statistics</h1><span class="nb-sp"></span></div></header><main class="scroll"><div class="pad">' +
+      '<h3 class="gh">Today</h3><div class="group"><div class="row col"><div class="big">' + n + '</div><div class="muted">' + (n ? 'cards in ' + Math.max(1, Math.round(ms / 60000)) + ' min, ' + Math.round(ms / n / 1000) + ' s per card on average. Correct: ' + Math.round(ok / n * 100) + '%' : 'You haven’t studied today') + '</div></div></div>' +
+      '<h3 class="gh">Reviews, next 7 days</h3><div class="group"><div class="row col"><div class="forecast">' + bars + '</div></div></div>' +
+      '<h3 class="gh">All cards: ' + S.cards.length + '</h3><div class="group"><div class="row col"><div class="stack">' + bar + '</div>' +
+      seg(cnt.nw, 's-nw', 'New') + seg(cnt.lr, 's-lr', 'Learning') + seg(cnt.yg, 's-yg', 'Young (under 21 days)') + seg(cnt.mt, 's-mt', 'Mature (21 days or more)') + seg(cnt.sp, 's-sp', 'Suspended') + '</div></div>' +
+      '</div></main>' + tabbar('stats') + '</div>');
+  }
+
+  /* ---------- Dueение ---------- */
+  function renderStudyShell(did) {
+    S.view = { name: 'study', did: did };
+    var d = S.decks.get(did);
+    setApp('<div class="screen study"><header class="st-top"><div class="st-in gutter"><button class="nav-btn" data-act="exitStudy">Done</button><div class="counts" id="counts"></div><div class="st-r"><button class="nav-btn icon" data-act="undo" aria-label="Undo">' + icon('undo') + '</button><button class="nav-btn icon" data-act="more" aria-label="More">' + icon('more') + '</button></div></div></header>' +
+      '<main class="cardwrap" id="cardwrap"><div class="cardhost" id="cardhost"></div></main>' +
+      '<footer class="st-bot"><div class="gutter" id="botbar"></div></footer></div>');
+    $('#cardwrap').style.background = isDark() ? '#1c1c1e' : '#fff';
+  }
+  function updateCounts() {
+    var q = S.q, el = $('#counts'); if (!q || !el) return;
+    var st = S.cur && S.cur.card ? S.cur.card.state : '', k = st === 'new' ? 'n' : (st === 'learn' || st === 'relearn') ? 'l' : st === 'review' ? 'r' : '';
+    el.innerHTML = '<span class="cnt n' + (k === 'n' ? ' cur' : '') + '">' + q.new.length + '</span><span class="cnt l' + (k === 'l' ? ' cur' : '') + '">' + q.learn.length + '</span><span class="cnt r' + (k === 'r' ? ' cur' : '') + '">' + q.rev.length + '</span>';
+  }
+  function updateBottom() {
+    var b = $('#botbar'); if (!b) return;
+    if (!S.cur) { b.innerHTML = '<button class="btn-show" data-act="exitStudy">Done</button>'; return; }
+    if (S.cur.side === 'q') { b.innerHTML = '<button class="btn-show" data-act="showAns">Show Answer</button>'; return; }
+    var lb = Core.previewLabels(S.cur.card, S.cfg, Date.now(), Today());
+    b.innerHTML = '<div class="ans">' + [1, 2, 3, 4].map(function (i) { return '<button class="ab ab' + i + '" data-act="rate" data-r="' + i + '"><small>' + lb[i - 1] + '</small><span>' + NAMES[i - 1] + '</span></button>'; }).join('') + '</div>';
+  }
+  async function startStudy(did) {
+    renderStudyShell(did);
+    S.q = buildQueue(did); S.undo = [];
+    await nextCard();
+  }
+  async function nextCard() {
+    var c = pickNext(S.q);
+    if (!c) { S.cur = null; updateCounts(); showDone(); return; }
+    await present(c);
+  }
+  function showDone() {
+    S.tok++;
+    var host = $('#cardhost'); if (!host) return;
+    host.innerHTML = '<div class="done"><div class="done-ic">✓</div><h2>Congratulations!</h2><p>You have finished this deck for today.</p></div>';
+    updateBottom();
+  }
+  async function present(card) {
+    S.cur = { card: card, side: 'q', shownAt: Date.now(), typed: '' };
+    updateCounts(); updateBottom();
+    await renderSide();
+  }
+  async function renderSide() {
+    var cur = S.cur, tok = ++S.tok, wrap = $('#cardwrap'); if (!cur || !wrap) return;
+    var built;
+    try { built = await buildCard(cur.card, cur.side, cur.typed); }
+    catch (e) { if (tok !== S.tok) return; $('#cardhost').innerHTML = '<div class="done"><p>Could not show the card: ' + E(e.message) + '</p></div>'; return; }
+    if (tok !== S.tok) return;
+    S.curPkg = built.pkg;
+    var host = $('#cardhost'), fid = 'f' + Math.random().toString(36).slice(2), fr = document.createElement('iframe');
+    fr.className = 'cardframe pending'; fr.setAttribute('sandbox', 'allow-scripts'); fr.setAttribute('title', 'Card');
+    fr.style.height = wrap.clientHeight + 'px';
+    S.frames.set(fid, { fr: fr, side: cur.side, swapped: false });
+    host.appendChild(fr); fr.srcdoc = built.make(fid);
+    var swap = function () {
+      var f = S.frames.get(fid); if (!f || f.swapped) return; f.swapped = true;
+      host.querySelectorAll('iframe').forEach(function (o) { if (o !== fr) { S.frames.forEach(function (v, k) { if (v.fr === o) S.frames.delete(k); }); o.remove(); } });
+      fr.classList.remove('pending');
+    };
+    S.frames.get(fid).swap = swap;
+    setTimeout(swap, 900);
+    if (S.cfg.autoplay && built.sounds.length) { var snd = built.sounds[0]; setTimeout(function () { if (tok === S.tok) playSound(built.pkg, snd); }, 150); }
+    if (cur.side === 'q') wrap.scrollTop = 0;
+  }
+  window.addEventListener('message', function (ev) {
+    var m = ev.data; if (!m || typeof m !== 'object' || !m.id) return;
+    var f = S.frames.get(m.id); if (!f || ev.source !== f.fr.contentWindow) return;
+    var wrap = $('#cardwrap');
+    if (m.t === 'h') {
+      f.fr.style.height = Math.max(m.h, wrap ? wrap.clientHeight : 0) + 'px'; f.swap && f.swap();
+    } else if (m.t === 'ans') {
+      if (S.cfg.autoScroll && wrap && f.side === 'a' && m.y > 24) setTimeout(function () { wrap.scrollTop = Math.max(0, f.fr.offsetTop + m.y - 6); }, 60);
+    } else if (m.t === 'img') openLightbox(m.src);
+    else if (m.t === 'play') playSound(S.curPkg, m.n);
+    else if (m.t === 'typed' && S.cur) S.cur.typed = m.v;
+  });
+  async function showAnswer() {
+    if (!S.cur || S.cur.side !== 'q') return;
+    S.cur.side = 'a'; updateBottom(); await renderSide();
+  }
+  async function rate(r) {
+    var cur = S.cur; if (!cur || cur.side !== 'a') return;
+    var card = cur.card, now = Date.now(), today = Today(), before = Object.assign({}, card), dailyBefore = JSON.stringify(S.daily);
+    var after = Core.schedule(card, r, S.cfg, now, today, true);
+    Object.assign(card, after);
+    if (before.state === 'new') bumpDaily(card.did, 'n'); else if (before.state === 'review') bumpDaily(card.did, 'r');
+    var lid = now * 1000 + (S.logSeq++ % 1000);
+    enqueue(function () { return dbPutMany('log', [{ id: lid, cid: card.id, did: card.did, r: r, st: before.state, ivl: card.ivl, t: Math.min(60000, now - cur.shownAt) }]); });
+    persistCard(card);
+    var buried = [];
+    if (S.cfg.bury) {
+      (S.byNid.get(card.nid) || []).forEach(function (s) {
+        if (s.id !== card.id && !s.sus && !(s.bu && s.bu > today)) { s.bu = today + 1; buried.push(s.id); persistCard(s); dropFromQueue(S.q, s.id); }
+      });
+    }
+    dropFromQueue(S.q, card.id);
+    if ((card.state === 'learn' || card.state === 'relearn') && card.due < dayCutoff()) { S.q.learn.push(card); S.q.learn.sort(function (a, b) { return a.due - b.due; }); }
+    S.undo.push({ card: before, daily: dailyBefore, lid: lid, buried: buried }); if (S.undo.length > 20) S.undo.shift();
+    await nextCard();
+  }
+  async function undo() {
+    var u = S.undo.pop(); if (!u) { toast('Nothing to undo'); return; }
+    var card = S.cards.find(function (c) { return c.id === u.card.id; });
+    if (!card) return;
+    Object.assign(card, u.card);
+    S.daily = JSON.parse(u.daily); persistDaily();
+    u.buried.forEach(function (id) { var c = S.cards.find(function (x) { return x.id === id; }); if (c) { c.bu = 0; persistCard(c); } });
+    persistCard(card);
+    enqueue(function () { return dbDelMany('log', [u.lid]); });
+    S.q = buildQueue(S.q.did);
+    await present(card);
+  }
+  async function suspendOrBury(kind) {
+    var cur = S.cur; if (!cur) return;
+    var c = cur.card;
+    if (kind === 'sus') c.sus = 1; else c.bu = Today() + 1;
+    persistCard(c); dropFromQueue(S.q, c.id);
+    toast(kind === 'sus' ? 'Card suspended' : 'Card buried until tomorrow');
+    await nextCard();
+  }
+  async function toggleMark() {
+    var cur = S.cur; if (!cur) return;
+    var note = await getNote(cur.card.nid); if (!note) return;
+    var i = note.tags.indexOf('marked');
+    if (i >= 0) note.tags.splice(i, 1); else note.tags.push('marked');
+    enqueue(function () { return dbPutMany('notes', [note]); });
+    toast(i >= 0 ? 'Mark removed' : 'Note marked');
+  }
+  function exitStudy() {
+    S.tok++; S.q = null; S.cur = null; S.frames.clear();
+    var did = S.view.did; renderOverview(did);
+  }
+
+  /* ---------- Увеличение картинок ---------- */
+  var lb = { z: 0 };
+  function openLightbox(src) {
+    var el = $('#lb'); el.hidden = false; lb.z = 0;
+    el.innerHTML = '<button class="lb-x" data-act="closeLb" aria-label="Close">✕</button><div class="lb-scroll" id="lbs"><img id="lbi" alt="" style="width:100%;height:100%;object-fit:contain" src="' + src + '"></div><div class="lb-hint">Tap an image to zoom</div>';
+  }
+  function closeLightbox() { var el = $('#lb'); el.hidden = true; el.innerHTML = ''; }
+  function lbTap(ev) {
+    var img = $('#lbi'), sc = $('#lbs'); if (!img || !sc) return;
+    var r = img.getBoundingClientRect(), rx = (ev.clientX - r.left) / r.width, ry = (ev.clientY - r.top) / r.height;
+    lb.z = (lb.z + 1) % 4;
+    var w = [100, 200, 350, 600][lb.z];
+    img.style.width = w + '%'; img.style.maxWidth = w === 100 ? '100%' : 'none';
+    img.style.height = w === 100 ? '100%' : 'auto'; img.style.objectFit = 'contain';
+    var nr = img.getBoundingClientRect();
+    sc.scrollLeft += (nr.left + rx * nr.width) - ev.clientX; sc.scrollTop += (nr.top + ry * nr.height) - ev.clientY;
+  }
+
+  /* ---------- Import ---------- */
+  function hash(s) { var h = 5381; for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return h + ':' + s.length; }
+  async function alloc(n) { var s = S.nextId; S.nextId += n; await setMeta('nextId', S.nextId); return s; }
+  function openImport() {
+    if (!idb) { toast('Browser storage is unavailable, import is impossible'); return; }
+    openSheet('<h2>Import Deck</h2><p class="muted">Choose one or more .apkg files. Images and audio are saved with the cards.</p>' +
+      '<label class="row sw"><span class="grow">Keep progress from file<small>If the file contains review dates</small></span><span class="switch"><input type="checkbox" id="keepProg"><i></i></span></label>' +
+      '<label class="sbtn primary" for="pick">Choose File…</label><input id="pick" type="file" multiple hidden><button class="sbtn" data-act="closeSheet">Cancel</button>');
+  }
+  function impUI(title, pct, text, done) {
+    if (!$('#sheet .sheet')) openSheet('');
+    $('#sheet .sheet').innerHTML = '<h2>' + E(title) + '</h2><div class="prog"><i style="width:' + Math.round(pct * 100) + '%"></i></div><p class="muted">' + E(text) + '</p>' + (done ? '<button class="sbtn primary" data-act="closeSheet">Done</button>' : '<p class="foot">Do not close or minimize the page while importing.</p>');
+  }
+  async function runImport(files, keep) {
+    var summary = [];
+    for (var fi = 0; fi < files.length; fi++) {
+      var f = files[fi], label = files.length > 1 ? '(' + (fi + 1) + '/' + files.length + ') ' + f.name : f.name;
+      try {
+        var r = await importOne(f, keep, function (txt, p) { impUI(label, p, txt, false); });
+        summary.push(f.name + ': +' + r.added + ' notes' + (r.skipped ? ', already had ' + r.skipped : '') + ', images and audio ' + r.media);
+      } catch (e) {
+        console.error(e);
+        summary.push(f.name + ': error — ' + (e && e.message ? e.message : e));
+      }
+    }
+    renderCurrentRoot();
+    impUI('Import complete', 1, summary.join('\n'), true);
+    $('#sheet .muted').style.whiteSpace = 'pre-wrap';
+  }
+  async function importOne(file, keep, rep) {
+    rep('Opening archive…', 0.01);
+    await ensureLibs();
+    var pkg = await Core.openApkg(file), created = { notes: [], guids: [], cards: [], pkg: 0 }, newCards = [];
+    try {
+      var pkgId = await alloc(1); created.pkg = pkgId;
+      var mmap = new Map(), newModels = [];
+      for (var m of pkg.models) {
+        var sig = hash(JSON.stringify([m.name, m.kind, m.css, m.fields, m.tmpls])), ex = null;
+        for (var x of S.models.values()) if (x.sig === sig) { ex = x; break; }
+        if (!ex) { ex = { id: await alloc(1), name: m.name, kind: m.kind, css: m.css, fields: m.fields, tmpls: m.tmpls, sig: sig }; newModels.push(ex); S.models.set(ex.id, ex); }
+        mmap.set(m.id, ex.id);
+      }
+      await dbPutMany('models', newModels);
+      var dnames = new Map(pkg.decks.map(function (d) { return [d.id, d]; })), dmap = new Map(), newDecks = [];
+      var ensureDeck = async function (name) {
+        name = String(name || 'Default').replace(/::+/g, '::').replace(/^::|::$/g, '') || 'Default';
+        var parts = name.split('::'), path = '', id = 0;
+        for (var p of parts) {
+          path = path ? path + '::' + p : p;
+          var d = null; for (var y of S.decks.values()) if (y.name === path) { d = y; break; }
+          if (!d) { d = { id: await alloc(1), name: path, newPerDay: S.cfg.newPerDay, revPerDay: S.cfg.revPerDay, collapsed: false }; S.decks.set(d.id, d); newDecks.push(d); }
+          id = d.id;
+        }
+        return id;
+      };
+      var guids = new Set(await dbKeys('guids')), nmap = new Map(), added = 0, skipped = 0, done = 0, it = pkg.notes();
+      for (; ;) {
+        var rows = it.next(300); if (!rows.length) break;
+        var base = await alloc(rows.length), recs = [], gs = [], k = 0;
+        rows.forEach(function (r) {
+          var mid = mmap.get(r.mid);
+          if (!mid || guids.has(r.guid)) { skipped++; return; }
+          var id = base + (k++); nmap.set(r.id, id); guids.add(r.guid);
+          recs.push({ id: id, guid: r.guid, mid: mid, pkg: pkgId, flds: r.flds.split('\x1f'), tags: r.tags.trim().split(/\s+/).filter(Boolean) });
+          gs.push([r.guid, id]);
+        });
+        await dbPutMany('notes', recs); await dbPutMany('guids', gs, true);
+        recs.forEach(function (n) { created.notes.push(n.id); }); gs.forEach(function (g) { created.guids.push(g[0]); });
+        added += recs.length; done += rows.length;
+        rep('Notes: ' + done + ' of ' + pkg.noteCount, 0.02 + 0.3 * done / Math.max(1, pkg.noteCount)); await tick();
+      }
+      var ci = pkg.cards(), cdone = 0, seq = 0, crtDay = dayNum(pkg.crt * 1000), today = Today(), keepSched = !!keep;
+      for (; ;) {
+        var crows = ci.next(500); if (!crows.length) break;
+        var cids = await alloc(crows.length), out = [], kk = 0;
+        for (var r of crows) {
+          var nid = nmap.get(r.nid); if (!nid) continue;
+          var odid = r.odid && r.odid !== '0' ? r.odid : r.did;
+          if (!dmap.has(odid)) dmap.set(odid, await ensureDeck((dnames.get(odid) || dnames.get(r.did) || {}).name));
+          var c = { id: cids + (kk++), nid: nid, did: dmap.get(odid), ord: r.ord, state: 'new', due: r.type === 0 ? r.due : 1e9 + (seq++), ivl: 0, ease: S.cfg.startEase, reps: 0, lapses: 0, left: 0, sus: 0, bu: 0 };
+          if (keepSched) {
+            if ((r.type === 2 || r.type === 3) && r.ivl > 0) {
+              c.state = 'review'; c.ivl = r.ivl; c.ease = r.factor || S.cfg.startEase; c.reps = r.reps || 0; c.lapses = r.lapses || 0;
+              c.due = r.type === 3 ? today : crtDay + r.due;
+            }
+            if (r.queue === -1) c.sus = 1;
+          }
+          out.push(c);
+        }
+        if (newDecks.length) { await dbPutMany('decks', newDecks); newDecks = []; }
+        await dbPutMany('cards', out);
+        out.forEach(function (c2) { created.cards.push(c2.id); newCards.push(c2); });
+        cdone += crows.length; rep('Cards: ' + cdone + ' of ' + pkg.cardCount, 0.32 + 0.1 * cdone / Math.max(1, pkg.cardCount)); await tick();
+      }
+      if (newDecks.length) await dbPutMany('decks', newDecks);
+      var batch = [], bytes = 0, mi = 0, stored = 0, mt = pkg.media.length;
+      for (var item of (added > 0 ? pkg.media : [])) {
+        mi++;
+        var d2 = await pkg.readMedia(item);
+        if (d2) {
+          if (d2.byteOffset || d2.byteLength !== d2.buffer.byteLength) d2 = d2.slice();
+          batch.push([pkgId + '/' + item.name, { d: d2 }]); bytes += d2.length; stored++;
+        }
+        if (batch.length >= 150 || bytes > 12e6) { await dbPutMany('media', batch, true); batch = []; bytes = 0; rep('Images and audio: ' + mi + ' of ' + mt, 0.42 + 0.58 * mi / Math.max(1, mt)); await tick(); }
+      }
+      if (batch.length) await dbPutMany('media', batch, true);
+      newCards.forEach(function (c3) { S.cards.push(c3); var a = S.byNid.get(c3.nid); if (!a) S.byNid.set(c3.nid, a = []); a.push(c3); });
+      pkg.close();
+      return { added: added, skipped: skipped, media: stored };
+    } catch (e) {
+      pkg.close();
+      try { await rollback(created); } catch (e2) { console.error(e2); }
+      throw e;
+    }
+  }
+  async function rollback(cr) {
+    if (cr.cards.length) await dbDelMany('cards', cr.cards);
+    if (cr.notes.length) await dbDelMany('notes', cr.notes);
+    if (cr.guids.length) await dbDelMany('guids', cr.guids);
+    if (cr.pkg) await dbDelRange('media', IDBKeyRange.bound(cr.pkg + '/', cr.pkg + '/￿'));
+  }
+  function renderCurrentRoot() {
+    var v = S.view.name;
+    if (v === 'stats') renderStats(); else if (v === 'settings') renderSettings(); else if (v === 'overview') renderOverview(S.view.did); else renderDecks();
+  }
+
+  /* ---------- Удаление ---------- */
+  async function deleteDeck(did) {
+    var t = treeInfo(), ids = new Set();
+    var walk = function (id) { ids.add(id); (t.kids.get(id) || []).forEach(function (k) { walk(k.id); }); };
+    walk(did);
+    var gone = S.cards.filter(function (c) { return ids.has(c.did); }), goneIds = new Set(gone.map(function (c) { return c.id; }));
+    S.cards = S.cards.filter(function (c) { return !goneIds.has(c.id); });
+    S.byNid = new Map(); S.cards.forEach(function (c) { var a = S.byNid.get(c.nid); if (!a) S.byNid.set(c.nid, a = []); a.push(c); });
+    var nids = new Set(gone.map(function (c) { return c.nid; })), delNotes = [], pk = new Set(), gs = [];
+    for (var nid of nids) {
+      if (S.byNid.has(nid)) continue;
+      var n = await dbGet('notes', nid); if (n) { gs.push(n.guid); pk.add(n.pkg); }
+      delNotes.push(nid);
+    }
+    await dbDelMany('cards', Array.from(goneIds)); await dbDelMany('notes', delNotes); await dbDelMany('guids', gs);
+    for (var p of pk) {
+      var cnt = await rp(idb.transaction('notes').objectStore('notes').index('pkg').count(p));
+      if (!cnt) await dbDelRange('media', IDBKeyRange.bound(p + '/', p + '/￿'));
+    }
+    await dbDelMany('decks', Array.from(ids));
+    ids.forEach(function (id) { S.decks.delete(id); });
+    S.noteCache.clear(); S.mcache.clear(); S.cssCache.clear();
+  }
+  async function wipeAll() {
+    for (var s of ['decks', 'models', 'notes', 'cards', 'guids', 'media', 'log']) await dbClear(s);
+    S.decks.clear(); S.models.clear(); S.cards = []; S.byNid = new Map(); S.noteCache.clear(); S.mcache.clear(); S.cssCache.clear();
+    S.daily = { day: 0, by: {} }; await setMeta('daily', S.daily);
+  }
+
+  /* ---------- События ---------- */
+  var acts = {
+    tab: function (el) { var v = el.dataset.v; if (v === 'decks') renderDecks(); else if (v === 'stats') renderStats(); else renderSettings(); },
+    back: function () { renderDecks(); },
+    openDeck: function (el) { renderOverview(Number(el.dataset.id)); },
+    toggle: function (el, ev) {
+      ev.stopPropagation();
+      var d = S.decks.get(Number(el.dataset.id)); if (!d) return;
+      d.collapsed = !d.collapsed; enqueue(function () { return dbPutMany('decks', [d]); }); renderDecks();
+    },
+    study: function () { startStudy(S.view.did); },
+    exitStudy: exitStudy,
+    showAns: showAnswer,
+    rate: function (el) { rate(Number(el.dataset.r)); },
+    undo: undo,
+    more: function () {
+      var mk = S.cur ? '' : ' disabled';
+      openSheet('<h2>Actions</h2><button class="sbtn"' + mk + ' data-act="mark">Mark / unmark</button><button class="sbtn"' + mk + ' data-act="bury">Bury card until tomorrow</button><button class="sbtn danger"' + mk + ' data-act="suspend">Suspend card</button><button class="sbtn" data-act="closeSheet">Cancel</button>');
+    },
+    mark: function () { closeSheet(); toggleMark(); },
+    bury: function () { closeSheet(); suspendOrBury('bury'); },
+    suspend: function () { closeSheet(); suspendOrBury('sus'); },
+    import: openImport,
+    closeSheet: function (el, ev) { closeSheet(); },
+    confirmOk: function () { var f = S.confirmFn; closeSheet(); if (f) f(); },
+    delDeck: function (el) {
+      var id = Number(el.dataset.id), d = S.decks.get(id);
+      confirmSheet('Delete deck?', 'Deck “' + d.name + '” (including subdecks), its cards and images will be deleted from this device.', 'Delete', async function () { await deleteDeck(id); renderDecks(); toast('Deck deleted'); });
+    },
+    wipe: function () { confirmSheet('Delete all data?', 'All decks, cards, images and progress will be deleted from this device. This cannot be undone.', 'Delete everything', async function () { await wipeAll(); renderSettings(); toast('Data deleted'); }); },
+    closeLb: closeLightbox
+  };
+  document.addEventListener('click', function (ev) {
+    var t = ev.target;
+    if (t.closest && t.closest('#lbi') && !$('#lb').hidden) { lbTap(ev); return; }
+    if (t.classList && t.classList.contains('sheet-bg')) { closeSheet(); return; }
+    var a = t.closest && t.closest('[data-act]');
+    if (!a) return;
+    var f = acts[a.dataset.act]; if (f) f(a, ev);
+  });
+  function saveCfg() { return setMeta('cfg', S.cfg); }
+  function parseSteps(v) { var a = String(v).split(/[\s,;]+/).map(Number).filter(function (x) { return x > 0 && isFinite(x); }); return a.length ? a : null; }
+  document.addEventListener('change', async function (ev) {
+    var t = ev.target;
+    if (t.id === 'pick') {
+      var files = Array.prototype.slice.call(t.files || []), keep = !!($('#keepProg') && $('#keepProg').checked);
+      if (files.length) runImport(files, keep);
+      return;
+    }
+    if (t.dataset.cfg) {
+      var k = t.dataset.cfg;
+      if (t.type === 'checkbox') S.cfg[k] = t.checked;
+      else { var v = Number(t.value); if (isFinite(v) && v >= 0) S.cfg[k] = v; }
+      await saveCfg(); return;
+    }
+    if (t.dataset.cfgsteps) {
+      var st = parseSteps(t.value), k2 = t.dataset.cfgsteps;
+      if (st) S.cfg[k2] = st; t.value = S.cfg[k2].join(' '); await saveCfg(); return;
+    }
+    if (t.dataset.deckopt) {
+      var d = S.decks.get(Number(t.dataset.id)), n = Math.max(0, Math.floor(Number(t.value)));
+      if (d && isFinite(n)) { d[t.dataset.deckopt] = n; enqueue(function () { return dbPutMany('decks', [d]); }); }
+      t.value = d ? d[t.dataset.deckopt] : 0;
+    }
+  });
+  document.addEventListener('input', function (ev) {
+    var t = ev.target;
+    if (t.id === 'fs') {
+      S.cfg.fontScale = Number(t.value); $('#fsval').textContent = t.value + '%'; $('#fsprev').style.fontSize = (20 * t.value / 100) + 'px';
+      clearTimeout(S.fst); S.fst = setTimeout(saveCfg, 300);
+    }
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (S.view.name !== 'study' || ev.target.tagName === 'INPUT' || ev.metaKey || ev.ctrlKey) return;
+    if (ev.key === ' ' || ev.key === 'Enter') { ev.preventDefault(); if (S.cur) { if (S.cur.side === 'q') showAnswer(); else rate(3); } }
+    else if (S.cur && S.cur.side === 'a' && '1234'.indexOf(ev.key) >= 0 && ev.key) rate(Number(ev.key));
+    else if (ev.key === 'z') undo();
+  });
+
+  /* ---------- Запуск ---------- */
+  async function boot() {
+    setApp('<div class="boot">Loading…</div>');
+    try {
+      idb = await openDB();
+    } catch (e) {
+      S.storageOk = false; idb = null;
+      setApp('<div class="screen"><div class="empty"><h2>Browser storage unavailable</h2><p>The app needs local storage to keep your decks. Open the page in a regular (non-private) Safari tab.</p></div></div>');
+      return;
+    }
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { }
+    try { S.boots = ((await dbGet('meta', 'boots')) || 0) + 1; await setMeta('boots', S.boots); } catch (e) { }
+    try {
+      var cfg = await dbGet('meta', 'cfg'); if (cfg) S.cfg = Object.assign({}, CFG0, cfg);
+      var daily = await dbGet('meta', 'daily'); if (daily) S.daily = daily;
+      var ni = await dbGet('meta', 'nextId'); S.nextId = ni || (Date.now());
+      (await dbAll('decks')).forEach(function (d) { S.decks.set(d.id, d); });
+      (await dbAll('models')).forEach(function (m) { S.models.set(m.id, m); });
+      S.cards = await dbAll('cards');
+      S.cards.forEach(function (c) { var a = S.byNid.get(c.nid); if (!a) S.byNid.set(c.nid, a = []); a.push(c); });
+    } catch (e) { console.error(e); toast('Error reading data'); }
+    renderDecks();
+  }
+  if (window.__TEST) window.__TEST_API = { S: S, importOne: importOne, startStudy: startStudy, rate: rate, showAnswer: showAnswer, undo: undo, renderDecks: renderDecks, renderOverview: renderOverview, renderStats: renderStats, renderSettings: renderSettings, deleteDeck: deleteDeck, libsReady: function () { libP.all = Promise.resolve(); }, boot: boot, acts: acts, computeCounts: computeCounts, buildQueue: buildQueue, buildCard: buildCard, openImport: openImport };
+  if (!window.__TEST) boot();
+})();
+</script>
+
